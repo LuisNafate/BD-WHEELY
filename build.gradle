@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'application'
+    id('com.github.johnrengelman.shadow') version '8.1.1' // Plugin para crear un JAR "fat" o "uber"
+}
+
+group = 'com.wheely'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Javalin para API REST
+    implementation 'io.javalin:javalin:6.0.0'
+
+    // MySQL Connector - NUEVA VERSIÓN
+    implementation 'com.mysql:mysql-connector-j:9.3.0'
+
+    // HikariCP para pool de conexiones
+    implementation 'com.zaxxer:HikariCP:5.0.1'
+
+    // Jackson para JSON
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.15.2'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2'
+
+    // Logging
+    implementation 'org.slf4j:slf4j-simple:2.0.7'
+
+    // BCrypt para hash de passwords
+    implementation 'org.mindrot:jbcrypt:0.4'
+
+    // Dotenv para variables de entorno
+    implementation 'io.github.cdimascio:dotenv-java:3.0.0'
+}
+
+application {
+    mainClass.set( 'com.wheely.Main')
+}
+
+// Configuración para archivos estáticos (si los usas)
+processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
