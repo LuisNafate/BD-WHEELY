@@ -49,8 +49,9 @@ public class ReporteService {
         if (reporte == null) {
             throw new IllegalArgumentException("Reporte no encontrado");
         }
-        if (reporte.getIdUsuario() != usuarioId) {
-            throw new IllegalArgumentException("Solo el autor puede eliminar el reporte");
+        // Permitir eliminación si es el autor O si el usuario es admin (ID 1)
+        if (reporte.getIdUsuario() != usuarioId && usuarioId != 1) {
+            throw new IllegalArgumentException("Solo el autor o administrador puede eliminar el reporte");
         }
         return reporteRepository.delete(id);
     }
