@@ -1,0 +1,209 @@
+#BASE DE DATOS  SQL SCRIPT
+
+-- Base de datos actualizada con tablas de Periodo y TiempoRutaPeriodo
+CREATE SCHEMA IF NOT EXISTS wheely DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+USE wheely;
+
+-- Eliminar tablas en orden correcto para evitar errores de foreign key
+DROP TABLE IF EXISTS TiempoRutaPeriodo;
+DROP TABLE IF EXISTS Periodo;
+DROP TABLE IF EXISTS CoordenadaParada;
+DROP TABLE IF EXISTS Parada;
+DROP TABLE IF EXISTS Coordenada;
+DROP TABLE IF EXISTS Reporte;
+DROP TABLE IF EXISTS RutaFavorita;
+DROP TABLE IF EXISTS Recorrido;
+DROP TABLE IF EXISTS Ruta;
+DROP TABLE IF EXISTS tipoReporte;
+DROP TABLE IF EXISTS Usuario;
+
+-- Tabla Usuario (manteniendo estructura original)
+CREATE TABLE Usuario (
+ idUsuario INT NOT NULL AUTO_INCREMENT,
+ nombre VARCHAR(100) NOT NULL,
+ email VARCHAR(100) NOT NULL,
+ password VARCHAR(255) NOT NULL,
+ PRIMARY KEY (idUsuario),
+ UNIQUE INDEX email (email ASC)
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Tabla TipoReporte (sin cambios)
+CREATE TABLE TipoReporte (
+ idTipoReporte INT NOT NULL AUTO_INCREMENT,
+ nombre_tipo VARCHAR(50) NOT NULL,
+ descripcion VARCHAR(200) NULL,
+ PRIMARY KEY (idTipoReporte)
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Nueva tabla Periodo para definir mañana, tarde y noche
+CREATE TABLE Periodo (
+ idPeriodo INT NOT NULL AUTO_INCREMENT,
+ nombre_periodo VARCHAR(20) NOT NULL,
+ hora_inicio TIME NOT NULL,
+ hora_fin TIME NOT NULL,
+ descripcion VARCHAR(100) NULL,
+ PRIMARY KEY (idPeriodo),
+ UNIQUE INDEX nombre_periodo (nombre_periodo ASC)
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Tabla Ruta (removemos tiempo_promedio porque ahora depende del periodo)
+CREATE TABLE Ruta (
+ idRuta INT NOT NULL AUTO_INCREMENT,
+ nombre_ruta VARCHAR(100) NOT NULL,
+ origen VARCHAR(100) NOT NULL,
+ destino VARCHAR(100) NOT NULL,
+ PRIMARY KEY (idRuta)
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Nueva tabla para tiempos por periodo y ruta
+CREATE TABLE TiempoRutaPeriodo (
+ idTiempoRutaPeriodo INT NOT NULL AUTO_INCREMENT,
+ idRuta INT NOT NULL,
+ idPeriodo INT NOT NULL,
+ tiempo_promedio INT NOT NULL COMMENT 'Tiempo en minutos',
+ PRIMARY KEY (idTiempoRutaPeriodo),
+ UNIQUE INDEX uk_ruta_periodo (idRuta ASC, idPeriodo ASC),
+ INDEX idx_ruta (idRuta ASC),
+ INDEX idx_periodo (idPeriodo ASC),
+ CONSTRAINT fk_tiempo_ruta
+   FOREIGN KEY (idRuta)
+   REFERENCES Ruta (idRuta)
+   ON DELETE CASCADE,
+ CONSTRAINT fk_tiempo_periodo
+   FOREIGN KEY (idPeriodo)
+   REFERENCES Periodo (idPeriodo)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Resto de tablas sin cambios
+CREATE TABLE Recorrido (
+ idRecorrido INT NOT NULL AUTO_INCREMENT,
+ idRuta INT NOT NULL,
+ nombre_archivo_geojson VARCHAR(255) NOT NULL,
+ activo TINYINT(1) NULL DEFAULT 1,
+ PRIMARY KEY (idRecorrido),
+ UNIQUE INDEX nombre_archivo_geojson (nombre_archivo_geojson ASC),
+ INDEX idx_ruta_recorrido (idRuta ASC),
+ CONSTRAINT fk_recorrido_ruta
+   FOREIGN KEY (idRuta)
+   REFERENCES Ruta (idRuta)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE Coordenada (
+ idCoordenada INT NOT NULL AUTO_INCREMENT,
+ idRecorrido INT NOT NULL,
+ latitud DECIMAL(10,8) NOT NULL,
+ longitud DECIMAL(11,8) NOT NULL,
+ orden_punto INT NOT NULL,
+ PRIMARY KEY (idCoordenada),
+ INDEX idx_recorrido_orden (idRecorrido ASC, orden_punto ASC),
+ CONSTRAINT fk_coordenada_recorrido
+   FOREIGN KEY (idRecorrido)
+   REFERENCES Recorrido (idRecorrido)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE Parada (
+ idParada INT NOT NULL AUTO_INCREMENT,
+ idRecorrido INT NOT NULL,
+ nombre_archivo_geojson VARCHAR(255) NULL,
+ activo TINYINT(1) NULL DEFAULT 1,
+ PRIMARY KEY (idParada),
+ INDEX idx_recorrido_parada (idRecorrido ASC),
+ CONSTRAINT fk_parada_recorrido
+   FOREIGN KEY (idRecorrido)
+   REFERENCES Recorrido (idRecorrido)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE CoordenadaParada (
+ idCoordenadaParada INT NOT NULL AUTO_INCREMENT,
+ idParada INT NOT NULL,
+ latitud DECIMAL(10,8) NULL,
+ longitud DECIMAL(11,8) NULL,
+ orden_parada INT NULL,
+ PRIMARY KEY (idCoordenadaParada),
+ INDEX idx_parada_orden (idParada ASC, orden_parada ASC),
+ CONSTRAINT fk_coordenada_parada
+   FOREIGN KEY (idParada)
+   REFERENCES Parada (idParada)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE RutaFavorita (
+ idRutaFavorita INT NOT NULL AUTO_INCREMENT,
+ idUsuario INT NOT NULL,
+ idRuta INT NOT NULL,
+ PRIMARY KEY (idRutaFavorita),
+ UNIQUE INDEX uk_usuario_ruta (idUsuario ASC, idRuta ASC),
+ INDEX idx_ruta (idRuta ASC),
+ CONSTRAINT fk_favorita_usuario
+   FOREIGN KEY (idUsuario)
+   REFERENCES Usuario (idUsuario)
+   ON DELETE CASCADE,
+ CONSTRAINT fk_favorita_ruta
+   FOREIGN KEY (idRuta)
+   REFERENCES Ruta (idRuta)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
+
+-- Tabla Reporte con idUsuario consistente con Usuario
+CREATE TABLE reportes (
+ idReporte INT NOT NULL AUTO_INCREMENT,
+ idRuta INT NOT NULL,
+ idTipoReporte INT NOT NULL,
+ idUsuario INT NOT NULL,
+ titulo VARCHAR(100) NOT NULL,
+ descripcion TEXT NOT NULL,
+ fecha_reporte DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY (idReporte),
+ INDEX idx_ruta (idRuta ASC),
+ INDEX idx_tipo_reporte (idTipoReporte ASC),
+ INDEX idx_usuario (idUsuario ASC),
+ CONSTRAINT fk_reporte_ruta
+   FOREIGN KEY (idRuta)
+   REFERENCES Ruta (idRuta)
+   ON DELETE CASCADE,
+ CONSTRAINT fk_reporte_tipo
+   FOREIGN KEY (idTipoReporte)
+   REFERENCES TipoReporte (idTipoReporte)
+   ON DELETE RESTRICT,
+ CONSTRAINT fk_reporte_usuario
+   FOREIGN KEY (idUsuario)
+   REFERENCES Usuario (idUsuario)
+   ON DELETE CASCADE
+)
+ENGINE = InnoDB
+DEFAULT CHARACTER SET = utf8mb4
+COLLATE = utf8mb4_0900_ai_ci;
